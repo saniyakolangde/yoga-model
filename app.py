@@ -5,6 +5,7 @@ import mediapipe as mp
 import numpy as np
 import pandas as pd
 import base64
+import os
 from flask_cors import CORS
 
 mp_pose = mp.solutions.pose
@@ -14,7 +15,9 @@ app = Flask(__name__)
 CORS(app)
 
 # Load the trained model
-model = tf.keras.models.load_model('landmarks_model.h5')
+model_path = os.environ.get('MODEL_PATH', 'landmarks_model.h5')
+model = tf.keras.models.load_model(model_path)
+#model = tf.keras.models.load_model('landmarks_model.h5')
 class_names = ['downdog', 'goddess', 'plank', 'tree', 'warrior2']
 confidence_threshold = 0.6 
 visibility_threshold = 0.5
