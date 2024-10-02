@@ -13,7 +13,7 @@ pose = mp_pose.Pose()
 
 app = Flask(__name__)
 # CORS(app)
-CORS(app, resources={r"/*": {"origins": "https://localhost:44352"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
 # Load the trained model
