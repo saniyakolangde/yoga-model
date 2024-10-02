@@ -12,7 +12,9 @@ mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
+CORS(app, resources={r"/*": {"origins": ["https://localhost:44352", "https://yoga-model.onrender.com"]}})
+
 
 # Load the trained model
 model_path = os.environ.get('MODEL_PATH', 'landmarks_model.h5')
