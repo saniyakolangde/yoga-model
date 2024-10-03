@@ -196,30 +196,32 @@
     }
 
     function startSessionCountdown() {
-        beepSound.play();
-        timerDisplay.textContent = "Go!";
-        poseInterval = setInterval(() => {
-            if (poseSessionTime > 0) {
-                poseSessionTime--;
-                updateTimerDisplay();
-                // const minutes = Math.floor(poseSessionTime / 60);
-                // const seconds = poseSessionTime % 60;
-                // timerDisplay.textContent = `00:${seconds < 10 ? '0' + seconds : seconds}`;
+    timerDisplay.textContent = "Go!";
+    poseInterval = setInterval(() => {
+        if (poseSessionTime > 0) {
+            poseSessionTime--;
+            const minutes = Math.floor(poseSessionTime / 60);
+            const seconds = poseSessionTime % 60;
+            timerDisplay.textContent = `00:${seconds < 10 ? '0' + seconds : seconds}`;
 
-                // Capture and send frame for pose detection during the session
+            // Capture and send frame for pose detection during the session every 2 seconds
+            if (poseSessionTime % 2 === 0) { // Adjust the frequency of frame sending
                 const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                const scaleFactor = 0.5; // Scale down the image size
+                canvas.width = video.videoWidth * scaleFactor;
+                canvas.height = video.videoHeight * scaleFactor;
                 const context = canvas.getContext('2d');
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const image = canvas.toDataURL('image/jpeg').split(',')[1];
+                const image = canvas.toDataURL('image/jpeg', 0.7).split(',')[1]; // JPEG quality
                 sendFrameToAPI(image);
-            } else {
-                clearInterval(poseInterval);
-                stopPoseRecognition();  // End session after 25 seconds
             }
-        }, 1000);
-    }
+        } else {
+            clearInterval(poseInterval);
+            stopPoseRecognition();  // End session after 25 seconds
+        }
+    }, 1000);
+}
+
 
     function stopPoseRecognition() {
         startPoseButton.style.display = 'block';
@@ -228,6 +230,7 @@
         clearInterval(countdown);
         timeTextDisplay.style.display = 'none';
         timerDisplay.textContent = "Session Ended";
+        poseSessionTime = 25;
     }
 
     startPoseButton.addEventListener('click', startPoseRecognition);
