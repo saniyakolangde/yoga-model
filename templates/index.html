@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pose Detection</title>
+    <link href="https://fonts.cdnfonts.com/css/tt-mussels-trl" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            width: 80%;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .timer {
+            font-size: 4em;
+            margin-bottom: 20px;
+            font-family: 'TT Mussels Trl', sans-serif;
+            color: #333;
+            width: 190px; /* Set a fixed width to prevent shifting */
+            text-align: center; /* Center the text inside the timer */
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+        }
+        .buttons button {
+            margin: 10px 0;
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .buttons button#start {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .buttons button#stop {
+            background-color: #f44336;
+            color: white;
+        }
+        .adjust-time {
+            margin: 10px 0;
+        }
+        .feedback {
+            font-size: 1.5em;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .webcam-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #webcam {
+            width: 640px;
+            height: 480px;
+            background-color: #ddd;
+            border: 2px solid #ccc;
+        }
+        .feedback-section {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <div class="timer"> <span id="timetext">Time</span></div>
+        <div class="timer"> <span id="time">00:25</span></div>
+        <div class="adjust-time">
+            <button id="increase-time" style="border-radius: 10px; font-size: 16px;">+5s</button>
+            <button id="decrease-time" style="border-radius: 10px; font-size: 16px; margin-left: 11px">-5s</button>
+        </div>
+        <div class="buttons">
+            <button id="start">Start</button>
+            <button id="stop" style="display:none;">Stop</button>
+        </div>
+    </div>
+
+    <div class="webcam-container">
+        <div id="webcam"> <!-- Webcam feed will be inserted here --> </div>
+        <div class="feedback-section">
+            <span id="pose">Pose: None</span><br>
+            <span id="confidence">Confidence: N/A</span><br>
+            <span id="feedback">Feedback: N/A</span>
+        </div>
+    </div>
+</div>
+
+<audio id="tickSound" src="https://www.soundjay.com/clock/sounds/clock-ticking-4.mp3" preload="auto"></audio>
+<audio id="beepSound" src="https://www.soundjay.com/buttons/sounds/beep-07a.mp3" preload="auto"></audio>
+<audio id="beepSound1" src="https://www.soundjay.com/buttons/sounds/beep-28.mp3" preload="auto"></audio>
+
+<script>
+    let poseInterval;
+    let countdown;
+    let readyCountdown = 5;
+    let poseSessionTime = 25;
+    const startPoseButton = document.getElementById('start');
+    const stopPoseButton = document.getElementById('stop');
+    const timerDisplay = document.getElementById('time');
+    const timeTextDisplay = document.getElementById('timetext');
+    const increaseTimeButton = document.getElementById('increase-time');
+    const decreaseTimeButton = document.getElementById('decrease-time');
+    const video = document.createElement('video');
+    const tickSound = document.getElementById('tickSound');
+    const beepSound = document.getElementById('beepSound');
+    const beepSound1 = document.getElementById('beepSound1');
+
+    function startWebcam() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+                video.play();
+                document.getElementById('webcam').appendChild(video);
+            })
+            .catch((error) => {
+                console.error('Error accessing webcam:', error);
+            });
+    }
+
+    async function sendFrameToAPI(image) {
+        const response = await fetch('/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image: image,
+            }),
+        });
+        const result = await response.json();
+        document.getElementById('pose').textContent = 'Pose: ' + result.pose;
+        document.getElementById('confidence').textContent = 'Confidence: ' + result.confidence.toFixed(2);
+        document.getElementById('feedback').textContent = 'Feedback: ' + result.feedback;
+    }
+
+    // Adjust session time by 5 seconds
+    increaseTimeButton.addEventListener('click', () => {
+        poseSessionTime += 5;
+        updateTimerDisplay();
+    });
+
+    decreaseTimeButton.addEventListener('click', () => {
+        if (poseSessionTime > 5) {  // Prevent going below 5 seconds
+            poseSessionTime -= 5;
+            updateTimerDisplay();
+        }
+    });
+
+    function updateTimerDisplay() {
+        const minutes = Math.floor(poseSessionTime / 60);
+        const seconds = poseSessionTime % 60;
+        timerDisplay.textContent = `00:${seconds < 10 ? '0' + seconds : seconds}`;
+    }
+
+    function startPoseRecognition() {
+        let readyCountdown = 5;
+        startPoseButton.style.display = 'none';
+        stopPoseButton.style.display = 'block';
+        timeTextDisplay.style.display = 'none';
+        timerDisplay.textContent = "Get Ready!";
+        // Initial 5-second countdown to get ready
+        countdown = setInterval(() => {
+            if (readyCountdown > 0) {
+                timeTextDisplay.style.display = 'block';
+                timerDisplay.textContent = "00:0" + readyCountdown;
+                beepSound1.play();
+                readyCountdown--;
+            } else {
+                clearInterval(countdown);
+                updateTimerDisplay();
+                startSessionCountdown();  // Start 25-second countdown
+            }
+        }, 1000);
+    }
+
+    function startSessionCountdown() {
+        beepSound.play();
+        timerDisplay.textContent = "Go!";
+        poseInterval = setInterval(() => {
+            if (poseSessionTime > 0) {
+                poseSessionTime--;
+                updateTimerDisplay();
+                // const minutes = Math.floor(poseSessionTime / 60);
+                // const seconds = poseSessionTime % 60;
+                // timerDisplay.textContent = `00:${seconds < 10 ? '0' + seconds : seconds}`;
+
+                // Capture and send frame for pose detection during the session
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const image = canvas.toDataURL('image/jpeg').split(',')[1];
+                sendFrameToAPI(image);
+            } else {
+                clearInterval(poseInterval);
+                stopPoseRecognition();  // End session after 25 seconds
+            }
+        }, 1000);
+    }
+
+    function stopPoseRecognition() {
+        startPoseButton.style.display = 'block';
+        stopPoseButton.style.display = 'none';
+        clearInterval(poseInterval);
+        clearInterval(countdown);
+        timeTextDisplay.style.display = 'none';
+        timerDisplay.textContent = "Session Ended";
+    }
+
+    startPoseButton.addEventListener('click', startPoseRecognition);
+    stopPoseButton.addEventListener('click', stopPoseRecognition);
+    startWebcam();
+</script>
+
+</body>
+</html>
