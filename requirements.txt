@@ -1,5 +1,9 @@
-﻿Flask==3.0.3
+Flask==3.0.3
+keras==3.5.0
 mediapipe==0.10.14
 numpy==1.26.4
-gunicorn
+opencv-python-headless==4.10.0.84
+pandas==2.2.3
+requests==2.32.3
 tensorflow==2.17.0
+gunicorn
