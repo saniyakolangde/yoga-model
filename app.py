@@ -5,7 +5,7 @@ import mediapipe as mp
 import numpy as np
 # import pandas as pd
 import base64
-import tensorflow.lite as tflite
+# import tensorflow.lite as tflite
 from PIL import Image
 
 
