@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify, render_template
-import cv2
+from PIL import Image
 import tensorflow as tf
 import mediapipe as mp
 import numpy as np
 import pandas as pd
 import base64
+from io import BytesIO
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
@@ -34,9 +35,9 @@ cumulative_deviation_threshold = 2.3  # Adjust based on requirements
 # Load reference landmarks from CSV
 reference_landmarks = pd.read_csv('pose_landmarks.csv')
 
-def extract_landmarks(frame):
-    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = pose.process(image)
+def extract_landmarks(image):
+    image_rgb = np.array(image.convert('RGB'))  # Convert PIL image to RGB NumPy array
+    results = pose.process(image_rgb)
     
     if results.pose_landmarks:
         landmarks = []
@@ -49,7 +50,6 @@ def extract_landmarks(frame):
         landmarks = np.array(landmarks)
         visibility_scores = np.array(visibility_scores)
 
-        critical_landmark_indices = [11, 12, 23, 24, 25, 26, 27, 28]
         visible_landmarks_count = np.sum(visibility_scores[critical_landmark_indices] > visibility_threshold)
 
         if visible_landmarks_count >= 4:
@@ -82,10 +82,9 @@ def predict_pose():
     try:
         data = request.json
         image_data = base64.b64decode(data['image'])
-        np_image = np.frombuffer(image_data, np.uint8)
-        frame = cv2.imdecode(np_image, cv2.IMREAD_COLOR)
-
-        lm_data = extract_landmarks(frame)
+        image = Image.open(BytesIO(image_data))  # Decode the image using PIL
+        
+        lm_data = extract_landmarks(image)
         if lm_data is not None:
             lm_data_reshaped = lm_data.reshape(1, -1)
             prediction = model.predict(lm_data_reshaped)
