@@ -8,11 +8,13 @@ WORKDIR /app
 COPY . /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    libgl1-mesa-glx  # This installs libGL.so.1
+# RUN apt-get update && apt-get install -y \
+#     ffmpeg \
+#     libsm6 \
+#     libxext6 \
+#     libgl1-mesa-glx  # This installs libGL.so.1
+apt-get update && apt-get install libgl1
+
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
