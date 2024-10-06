@@ -56,6 +56,10 @@
             background-color: #f44336;
             color: white;
         }
+        .buttons button#restart {
+            background-color: #f7982d;
+            color: white;
+        }
         .adjust-time {
             margin: 10px 0;
         }
@@ -70,44 +74,71 @@
             align-items: center;
         }
         #webcam {
-            width: 640px;
+            width: 680px;
             height: 480px;
             background-color: #ddd;
             border: 2px solid #ccc;
         }
         .feedback-section {
             margin-top: 20px;
-            font-size: 1.2em;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            padding: 20px; /* Add padding for spacing */
+            background-color: #e9c4fae1; /* White background for better contrast */
+            border-radius: 10px; /* Rounded corners */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+            text-align: center;
         }
+        #motivation {
+            display: none; /* Hidden by default */
+            font-size: 1.5em;
+            color: #8400ff;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-family: 'TT Mussels Trl', sans-serif;
+            animation: fadeIn 2s ease-in-out;
+        }
+        #webcam video {
+    width: 100%; /* Make video take full width of the container */
+    height: 100%; /* Make video take full height of the container */
+    object-fit: cover; /* This will cover the area while maintaining aspect ratio */
+}
+
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="controls">
-        <div class="timer"> <span id="timetext">Time</span></div>
-        <div class="timer"> <span id="time">00:25</span></div>
-        <div class="adjust-time">
-            <button id="increase-time" style="border-radius: 10px; font-size: 16px;">+5s</button>
-            <button id="decrease-time" style="border-radius: 10px; font-size: 16px; margin-left: 11px">-5s</button>
+        <div id="textdisplay2">
+            <div class="timer"> <span id="timetext">Time</span></div>
+            <div class="timer"> <span id="time">00:25</span></div>
+            <div class="adjust-time">
+                <button id="increase-time" style="border-radius: 10px; font-size: 16px; margin-left: 41px">+5s</button>
+                <button id="decrease-time" style="border-radius: 10px; font-size: 16px; margin-left: 11px">-5s</button>
+            </div>
+        </div>
+        <div id="motivation">
+            <p> Great job! <br> Keep practicing and stay positive! <br>😊</p> 
         </div>
         <div class="buttons">
             <button id="start">Start</button>
             <button id="stop" style="display:none;">Stop</button>
+            <button id="restart" style="display:none;">Restart</button>
         </div>
     </div>
 
     <div class="webcam-container">
         <div id="webcam"> <!-- Webcam feed will be inserted here --> </div>
         <div class="feedback-section">
-            <span id="pose">Pose: None</span><br>
-            <span id="confidence">Confidence: N/A</span><br>
-            <span id="feedback">Feedback: N/A</span>
+            <span id="pose"><strong>Pose:</strong> None</span><br>
+            <!-- <span id="confidence">Confidence: N/A</span><br> -->
+            <span id="feedback"><strong>Feedback:</strong> N/A</span>
         </div>
     </div>
 </div>
 
-<audio id="tickSound" src="https://www.soundjay.com/clock/sounds/clock-ticking-4.mp3" preload="auto"></audio>
 <audio id="beepSound" src="https://www.soundjay.com/buttons/sounds/beep-07a.mp3" preload="auto"></audio>
 <audio id="beepSound1" src="https://www.soundjay.com/buttons/sounds/beep-28.mp3" preload="auto"></audio>
 
@@ -118,6 +149,7 @@
     let poseSessionTime = 25;
     const startPoseButton = document.getElementById('start');
     const stopPoseButton = document.getElementById('stop');
+    const restartPoseButton = document.getElementById('restart');
     const timerDisplay = document.getElementById('time');
     const timeTextDisplay = document.getElementById('timetext');
     const increaseTimeButton = document.getElementById('increase-time');
@@ -126,6 +158,7 @@
     const tickSound = document.getElementById('tickSound');
     const beepSound = document.getElementById('beepSound');
     const beepSound1 = document.getElementById('beepSound1');
+    const motivationMessage = document.getElementById('motivation'); // Motivation element
 
     function startWebcam() {
         navigator.mediaDevices.getUserMedia({ video: true })
@@ -150,9 +183,9 @@
             }),
         });
         const result = await response.json();
-        document.getElementById('pose').textContent = 'Pose: ' + result.pose;
+        document.getElementById('pose').innerHTML = '<strong>Pose: </strong> ' + result.pose;
         document.getElementById('confidence').textContent = 'Confidence: ' + result.confidence.toFixed(2);
-        document.getElementById('feedback').textContent = 'Feedback: ' + result.feedback;
+        document.getElementById('feedback').innerHTML = '<strong>Feedback:</strong> ' + result.feedback;
     }
 
     // Adjust session time by 5 seconds
@@ -180,6 +213,7 @@
         stopPoseButton.style.display = 'block';
         timeTextDisplay.style.display = 'none';
         timerDisplay.textContent = "Get Ready!";
+        motivationMessage.style.display = 'none'; // Hide motivation when starting
         // Initial 5-second countdown to get ready
         countdown = setInterval(() => {
             if (readyCountdown > 0) {
@@ -196,16 +230,16 @@
     }
 
     function startSessionCountdown() {
-    timerDisplay.textContent = "Go!";
-    poseInterval = setInterval(() => {
-        if (poseSessionTime > 0) {
-            poseSessionTime--;
-            const minutes = Math.floor(poseSessionTime / 60);
-            const seconds = poseSessionTime % 60;
-            timerDisplay.textContent = `00:${seconds < 10 ? '0' + seconds : seconds}`;
+        beepSound.play();
+        timerDisplay.textContent = "Go!";
+        poseInterval = setInterval(() => {
+            if (poseSessionTime > 0) {
+                poseSessionTime--;
+                const minutes = Math.floor(poseSessionTime / 60);
+                const seconds = poseSessionTime % 60;
+                timerDisplay.textContent = `00:${seconds < 10 ? '0' + seconds : seconds}`;
 
-            // Capture and send frame for pose detection during the session every 2 seconds
-            if (poseSessionTime % 2 === 0) { // Adjust the frequency of frame sending
+                // Capture and send frame for pose detection during the session every second
                 const canvas = document.createElement('canvas');
                 const scaleFactor = 0.5; // Scale down the image size
                 canvas.width = video.videoWidth * scaleFactor;
@@ -214,17 +248,17 @@
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const image = canvas.toDataURL('image/jpeg', 0.7).split(',')[1]; // JPEG quality
                 sendFrameToAPI(image);
+            } else {
+                clearInterval(poseInterval);
+                timerDisplay.textContent = "Time's Up!";
+                motivationMessage.style.display = 'block';
+                stopPoseRecognition();  // End session after 25 seconds
             }
-        } else {
-            clearInterval(poseInterval);
-            stopPoseRecognition();  // End session after 25 seconds
-        }
-    }, 1000);
-}
-
+        }, 1000);
+    }
 
     function stopPoseRecognition() {
-        startPoseButton.style.display = 'block';
+        restartPoseButton.style.display = 'block';
         stopPoseButton.style.display = 'none';
         clearInterval(poseInterval);
         clearInterval(countdown);
@@ -235,6 +269,32 @@
 
     startPoseButton.addEventListener('click', startPoseRecognition);
     stopPoseButton.addEventListener('click', stopPoseRecognition);
+
+    function restartEverything() {
+        // Hide motivation message
+        motivationMessage.style.display = 'none';
+        
+        // Reset timer display
+        timerDisplay.textContent = '00:25'; // Reset to initial session time
+        poseSessionTime = 25; // Reset session time variable
+        
+        // Hide restart button and show start button again
+        restartPoseButton.style.display = 'none';
+        startPoseButton.style.display = 'block';
+        stopPoseButton.style.display = 'none'; // Ensure stop button is hidden
+        
+        // Reset feedback
+        document.getElementById('pose').textContent = 'Pose: None';
+        document.getElementById('feedback').textContent = 'Feedback: N/A';
+        
+        // Reset countdown timer text
+        timeTextDisplay.style.display = 'block';
+        timeTextDisplay.textContent = 'Time'; // Reset countdown text
+    }
+
+    // Add event listener for restart button
+    restartPoseButton.addEventListener('click', restartEverything);
+
     startWebcam();
 </script>
 
