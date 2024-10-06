@@ -184,7 +184,7 @@
         });
         const result = await response.json();
         document.getElementById('pose').innerHTML = '<strong>Pose: </strong> ' + result.pose;
-        document.getElementById('confidence').textContent = 'Confidence: ' + result.confidence.toFixed(2);
+        // document.getElementById('confidence').textContent = 'Confidence: ' + result.confidence.toFixed(2);
         document.getElementById('feedback').innerHTML = '<strong>Feedback:</strong> ' + result.feedback;
     }
 
